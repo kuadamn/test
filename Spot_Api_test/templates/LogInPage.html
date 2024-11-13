@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Authentication</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #121212; /* Dark background */
+            color: #ffffff; /* Light text color */
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #1DB954; /* Spotify green */
+            margin: 0;
+            padding-bottom: 20px;
+        }
+
+        .grey-box {
+            background-color: #1a1a1a; /* Light grey color */
+            height: 70px; /* Height of the box */
+            width: 150%;
+            margin-bottom: 20px; /* Space below the grey box */
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: -100;
+        }
+
+        input[type="text"], input[type="password"], button {
+            padding: 10px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            background-color: #1AAE4D; /* Dark input background */
+            color: #ffffff; /* Light input text */
+        }
+
+        button {
+            background-color: #1DB954; /* Spotify green */
+            color: #ffffff; /* White text */
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #1AAE4D; /* Lighter green on hover */
+        }
+
+        #SpotifyLogo {
+            position: fixed; /* Fixes the image in the viewport */
+            top: 10px; /* Distance from the top */
+            left: 365px; /* Center horizontally */
+            z-index: 500; /* Ensure it stays above other content */
+            
+        }
+    </style>
+</head>
+<body>
+    <div class="grey-box"></div>
+    <h1>Spotify Authentication <img id="SpotifyLogo" src = "C:\Users\USER\Desktop\labExercise\Spot_Api_test\Spotify_Primary_Logo_RGB_Black.png" alt = "Spotify Logo" width = "50" height = "50"></h1>
+    <div>
+        <label for="clientId">Client ID:</label>
+        <input type="text" id="clientId" placeholder="Enter your Client ID" required>
+        <br>
+        <label for="clientSecret">Client Secret:</label>
+        <input type="password" id="clientSecret" placeholder="Enter your Client Secret" required>
+        <br>
+        <button id="authButton">Authenticate</button>
+    </div>
+
+    <script>
+        // Function to authenticate and get token
+        function authenticate() {
+            const clientId = $("#clientId").val();
+            const clientSecret = $("#clientSecret").val();
+            const authUrl = "https://accounts.spotify.com/api/token";
+            const authString = `${clientId}:${clientSecret}`;
+            const base64AuthString = btoa(authString);
+
+            $.ajax({
+                url: authUrl,
+                method: "POST",
+                headers: {
+                    "Authorization": `Basic ${base64AuthString}`,
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                data: {
+                    grant_type: "client_credentials"
+                },
+                success: function(response) {
+                    const accessToken = response.access_token;
+                    alert("Authentication successful!");
+
+                    // Store the access token in local storage
+                    localStorage.setItem("spotifyAccessToken", accessToken);
+                    
+                    // Redirect to SearcherPage.html after successful authentication
+                    window.location.href = "SearcherPage.html";
+                },
+                error: function() {
+                    alert("Error retrieving token.");
+                }
+            });
+        }
+
+        function logout() {
+    // Remove the access token from local storage
+    localStorage.removeItem("spotifyAccessToken");
+
+    // Optionally, you can alert the user
+    alert("You have been logged out.");
+
+    // Redirect to the login page
+    window.location.href = "LogInPage.html";
+}
+
+        // Event listener
+        $("#authButton").click(authenticate);
+    </script>
+</body>
+</html>

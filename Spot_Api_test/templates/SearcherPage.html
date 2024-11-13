@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Album Cover Downloader</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #1DB954;
+            margin: 0;
+            padding-bottom: 20px;
+            position: fixed;
+            top: 20px;
+            width: 100%;
+            z-index: 100;
+        }
+
+        .grey-box {
+            background-color: #1a1a1a; /* Light grey color */
+            height: 70px; /* Height of the box */
+            width: 150%; /* Set to 100% for full width */
+            position: fixed; /* Make it sticky */
+            top: 0; /* Stick to the top */
+            left: 0;
+            z-index: 99; /* Ensure it stays below other content */
+        }
+
+        h2 {
+            color: #ffffff;
+            z-index: 0;
+            position: relative;
+            margin-top: 70px;
+        }
+
+        input[type="text"], button, select {
+            padding: 10px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        input[type="text"] {
+            width: 30%;
+            background-color: #1AAE4D;
+            color: #ffffff;
+        }
+
+        select {
+            background-color: #1DB954;
+            color: #ffffff;
+        }
+
+        button {
+            background-color: #1DB954;
+            color: #ffffff;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            z-index: 1000;
+            top:auto;
+        }
+     
+        button:hover {
+            background-color: #1AAE4D;
+        }
+
+        #logoutButton {
+            position: fixed; /* Fixes the button in the viewport */
+            top: 12px; /* Distance from the top */
+            right: 20px; /* Distance from the left */
+            padding: 10px 20px;
+            background-color: #1DB954; /* Original button color */
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 1000; /* Ensure it stays on top of other content */
+        }
+
+        #SpotifyLogo {
+            position: fixed; /* Fixes the image in the viewport */
+            top: 10px; /* Distance from the top */
+            left: 540px; /* Center horizontally */
+            z-index: 500; /* Ensure it stays above other content */
+            
+        }
+
+        #dataInput {
+            margin-top: 20px;
+        }
+
+        ol {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .song-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #0b0b0b;
+            border-radius: 4px;
+            font-size: 40px;
+            font-weight: bold;
+        }
+
+        .album-cover {
+            position: relative;
+            display: inline-block;
+            width: 150px;
+            height: 150px;
+            margin-right: 10px;
+            border-radius: 4px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .album-cover img {
+            width: 100%;
+            height: 100%;
+            border-radius: 4px;
+        }
+
+        .hover-text {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #1DB954;
+            font-size: 16px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .album-cover:hover .hover-text {
+            opacity: 1;
+        }
+
+        .song-info {
+            flex-grow: 1;
+            text-align: right;
+        }
+
+        .playSong {
+            color: #1DB954;
+            text-decoration: none;
+        }
+
+        .playSong:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    
+    <h1>Spotify Album Cover Downloader<button id="logoutButton">Logout</button></span><img id="SpotifyLogo" src = "C:\Users\USER\Desktop\labExercise\Spot_Api_test\Spotify_Primary_Logo_RGB_Black.png" alt = "Spotify Logo" width = "50" height = "50"></h1><div class = "grey-box"></div>
+
+    <div id="dataInput">
+        <h2>Search for an album cover you'd like to download here:</h2>
+        <label for="searchType">Search By:</label>
+        <select id="searchType">
+            <option value="artist">Artist</option>
+            <option value="track">Song Title</option>
+        </select>
+        <input type="text" id="searchQuery" placeholder="Enter your search term">
+        <button id="searchButton">Search</button>
+    </div>
+
+    <ol id="songList"></ol>
+
+    <script>
+        // Retrieve the access token from local storage
+        let accessToken = localStorage.getItem("spotifyAccessToken");
+        let songsData = [];
+
+        // Check if the access token is available, otherwise redirect to the login page
+        if (!accessToken) {
+            alert("No access token found. Please authenticate first.");
+            window.location.href = "LogInPage.html";
+        }
+
+        // Function to search based on the selected type (artist or track)
+        function searchSpotify() {
+            const searchType = $("#searchType").val();
+            const query = $("#searchQuery").val();
+
+            const searchUrl = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=${searchType}&limit=10`;
+
+            $.ajax({
+                url: searchUrl,
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${accessToken}`
+                },
+                success: function(response) {
+                    if (searchType === "artist") {
+                        const artistId = response.artists.items[0]?.id;
+                        if (artistId) {
+                            fetchTopTracks(artistId);
+                        } else {
+                            alert("Artist not found.");
+                        }
+                    } else if (searchType === "track") {
+                        displayTracks(response.tracks.items);
+                    }
+                },
+                error: function() {
+                    alert("Error retrieving data.");
+                }
+            });
+        }
+
+        // Function to fetch top tracks of the artist
+        function fetchTopTracks(artistId) {
+            const topTracksUrl = `https://api.spotify.com/v1/artists/${artistId}/top-tracks?market=US`;
+
+            $.ajax({
+                url: topTracksUrl,
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${accessToken}`
+                },
+                success: function(response) {
+                    displayTracks(response.tracks);
+                },
+                error: function() {
+                    alert("Error retrieving top tracks.");
+                }
+            });
+        }
+
+        // Function to display track results
+        function displayTracks(tracks) {
+            $('#songList').empty().show();
+
+            tracks.forEach((song) => {
+                const spotifyUri = song.uri;
+                const albumCoverUrl = song.album?.images[0]?.url;
+
+                $('#songList').append(`
+                    <li class="song-item">
+                        ${albumCoverUrl ? `
+                            <a href="${albumCoverUrl}" download="album_cover.jpg" class="album-cover">
+                                <img src="${albumCoverUrl}" alt="Album cover">
+                                <div class="hover-text">View full image?</div>
+                            </a>` : ''}
+                        <div class="song-info">
+                            <a href="#" class="playSong" data-uri="${spotifyUri}">
+                                ${song.name} by ${song.artists.map(artist => artist.name).join(", ")}
+                            </a>
+                        </div>
+                    </li>
+                `);
+            });
+        }
+
+        // Function to clear access token and log out
+        function logout() {
+            localStorage.removeItem("spotifyAccessToken");
+            alert("You have been logged out.");
+            window.location.href = " LogInPage.html";
+        }
+
+        // Event listener for playing a song
+        $(document).on("click", ".playSong", function(event) {
+            event.preventDefault();
+            const songUri = $(this).data("uri");
+            window.location.href = songUri;
+        });
+
+        // Event listener for the search button
+        $("#searchButton").click(searchSpotify);
+
+        // Event listener for pressing Enter in the search input
+        $("#searchQuery").keypress(function(event) {
+            if (event.which === 13) { // 13 is the Enter key
+                event.preventDefault(); // Prevent the default form submission
+                searchSpotify(); // Call the search function
+            }
+        });
+
+        $("#logoutButton").click(logout);
+    </script>
+</body>
+</html>
